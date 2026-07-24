@@ -1,0 +1,16 @@
+langchain
+langgraph
+langchain_community
+langchain-openai
+langchain-groq
+langchain-google-genai
+python-dotenv
+ipykernel
+langchain-tavily
+pypdf
+pymupdf
+langchain-text-splitters
+sentence-transformers
+faiss-cpu
+chromadb
+pageindex
