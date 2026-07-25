@@ -1,6 +1,6 @@
 import streamlit as st
 from shared.utils import require_keys, get_llm, ingest_pdfs, build_document_index
-from ask.logic import answer_query, update_chat_history
+from Ask.logic import answer_query, update_chat_history
 
 st.set_page_config(page_title="PaperTrail — Ask", page_icon="💬")
 st.title("💬 Ask")

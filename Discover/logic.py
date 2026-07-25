@@ -195,6 +195,7 @@ def format_results_node(state: dict) -> dict:
 
 
 class DiscoverState(TypedDict):
+    _llm: object
     raw_query: str
     search_terms: str
     category: Optional[str]
