@@ -19,7 +19,6 @@ st.set_page_config(
     layout="wide",
 )
 
-
 render_header("synthesize", "Synthesize", "Turn a stack of papers into one structured literature review.")
 render_key_status_badges(need_groq=True, need_pageindex=True)
 
@@ -34,12 +33,12 @@ has_docs = bool(document_trees)
 with st.container(key="panels_row"):
     left, right = st.columns([3, 7], border=True)
 
-    # ---------------- Left: documents ----------------
     with left:
         with st.container(key="synth_doc_area", height="stretch"):
             render_section_header("document", "Documents")
 
             doc_list_slot = st.container(key="synth_doc_list", height="stretch")
+
             with doc_list_slot:
                 if has_docs:
                     st.caption(f"{len(document_trees)} document(s) loaded")
@@ -49,22 +48,22 @@ with st.container(key="panels_row"):
                             f'<span class="pt-file-name">{d["filename"]}</span></div>',
                             unsafe_allow_html=True,
                         )
-                elif ready:
-                    st.markdown(
-                        '<div class="pt-empty-fill"><div class="pt-caution-box">'
-                        'Upload one or more PDFs below (two or more recommended), then click '
-                        '<b>Generate literature review</b>.</div></div>',
-                        unsafe_allow_html=True,
-                    )
 
-            # Uploader + generate button pinned at the bottom of the panel.
+            st.markdown("<div style='height:270px'></div>", unsafe_allow_html=True)
+
             uploaded_files = st.file_uploader(
-                "Upload PDFs", type=["pdf"], accept_multiple_files=True,
-                key="synth_uploader", label_visibility="collapsed",
+                "Upload PDFs",
+                type=["pdf"],
+                accept_multiple_files=True,
+                key="synth_uploader",
+                label_visibility="collapsed",
                 disabled=not ready,
             )
+
             generate_clicked = st.button(
-                "Generate literature review", width="stretch", type="primary",
+                "Generate literature review",
+                width="stretch",
+                type="primary",
                 disabled=not ready or not uploaded_files,
             )
 
@@ -72,22 +71,23 @@ with st.container(key="panels_row"):
                 with doc_list_slot:
                     placeholders = {f.name: st.empty() for f in uploaded_files}
                     document_trees = ingest_pdfs(uploaded_files, placeholders=placeholders)
+
                 st.session_state["synth_document_trees"] = document_trees
 
                 if not document_trees:
                     show_error_toast("No documents processed successfully.")
                 else:
                     if len(document_trees) == 1:
-                        # A single paper can still get a "review", but a literature
-                        # review is inherently comparative — flag this rather than
-                        # silently producing a thin one-paper output.
                         show_caution_toast(
                             "Only one document was uploaded — a literature review is usually "
                             "comparative, so this one may read more like a summary. Add another "
                             "paper for a fuller comparison."
                         )
-                    with st.spinner(f"Generating review across {len(document_trees)} document(s) "
-                                     f"(this can take 30-60s across several synthesis steps)..."):
+
+                    with st.spinner(
+                        f"Generating review across {len(document_trees)} document(s) "
+                        f"(this can take 30-60s across several synthesis steps)..."
+                    ):
                         try:
                             llm = get_llm()
                             result = generate_literature_review(llm, document_trees)
@@ -95,21 +95,32 @@ with st.container(key="panels_row"):
                             st.session_state.pop("synth_pdf_bytes", None)
                         except Exception as e:
                             show_error_toast(f"Something went wrong generating the review: {e}")
+
                 st.rerun()
 
-    # ---------------- Right: review ----------------
     with right:
         with st.container(key="synth_result_area", height="stretch"):
             render_section_header("synthesize", "Review")
             review_text = st.session_state.get("synth_review")
 
             result_body = st.container(key="synth_result_body", height="stretch")
+
             with result_body:
                 if not review_text:
                     st.markdown(
-                        '<div class="pt-empty-fill"><div class="pt-caution-box">'
-                        '⚠ Add at least one file on the left (two or more recommended) '
-                        'to generate the literature review.</div></div>',
+                        """
+                        <div style="
+                            height:260px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                        ">
+                            <div class="pt-caution-box">
+                                Add at least one PDF below, then click
+                                <b>Generate literature review</b>.
+                            </div>
+                        </div>
+                        """,
                         unsafe_allow_html=True,
                     )
                 else:
@@ -140,12 +151,12 @@ with st.container(key="panels_row"):
                         st.text_area("Copyable text", value=copyable, height=420, label_visibility="collapsed")
                         escaped = _html.escape(copyable)
                         st.markdown(f"""
-                            <textarea id="pt-copy-src" style="position:absolute; left:-9999px;">{escaped}</textarea>
-                            <button onclick="navigator.clipboard.writeText(document.getElementById('pt-copy-src').value);
-                                              this.innerText='✅ Copied!';
-                                              setTimeout(() => this.innerText='📋 Copy to clipboard', 1500);"
-                                    style="padding:0.5rem 1rem;border-radius:0.5rem;border:1px solid #f97316;
-                                           background:transparent;color:#f97316;cursor:pointer;font-weight:600;">
-                                📋 Copy to clipboard
-                            </button>
-                        """, unsafe_allow_html=True)
+<textarea id="pt-copy-src" style="position:absolute; left:-9999px;">{escaped}</textarea>
+<button onclick="navigator.clipboard.writeText(document.getElementById('pt-copy-src').value);
+this.innerText='✅ Copied!';
+setTimeout(() => this.innerText='📋 Copy to clipboard', 1500);"
+style="padding:0.5rem 1rem;border-radius:0.5rem;border:1px solid #f97316;
+background:transparent;color:#f97316;cursor:pointer;font-weight:600;">
+📋 Copy to clipboard
+</button>
+""", unsafe_allow_html=True)
