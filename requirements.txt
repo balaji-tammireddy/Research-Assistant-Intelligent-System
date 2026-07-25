@@ -18,3 +18,4 @@ dotenv
 ipywidgets
 arxiv
 reportlab
+streamlit
