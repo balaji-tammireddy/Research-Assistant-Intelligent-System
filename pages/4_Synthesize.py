@@ -9,7 +9,16 @@ from shared.utils import (
 )
 from Synthesize.logic import generate_literature_review, export_review_to_pdf, get_copyable_text
 
-st.set_page_config(page_title="PaperTrail — Synthesize", page_icon="📝", layout="wide")
+from pathlib import Path
+
+ICON = Path(__file__).resolve().parent.parent / "assets" / "favicon.png"
+
+st.set_page_config(
+    page_title="PaperTrail",
+    page_icon=str(ICON),
+    layout="wide",
+)
+
 
 render_header("synthesize", "Synthesize", "Turn a stack of papers into one structured literature review.")
 render_key_status_badges(need_groq=True, need_pageindex=True)

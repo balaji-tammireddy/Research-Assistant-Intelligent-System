@@ -6,7 +6,16 @@ from shared.utils import (
 )
 from Ask.logic import answer_query, update_chat_history
 
-st.set_page_config(page_title="PaperTrail — Ask", page_icon="💬", layout="wide")
+from pathlib import Path
+
+ICON = Path(__file__).resolve().parent.parent / "assets" / "favicon.png"
+
+st.set_page_config(
+    page_title="PaperTrail",
+    page_icon=str(ICON),
+    layout="wide",
+)
+
 
 render_header("ask", "Ask", "Chat with your documents — grounded answers with exact section citations.")
 render_key_status_badges(need_groq=True, need_pageindex=True)

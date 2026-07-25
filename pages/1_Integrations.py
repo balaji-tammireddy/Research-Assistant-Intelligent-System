@@ -1,7 +1,15 @@
 import streamlit as st
 from shared.utils import render_header
+from pathlib import Path
 
-st.set_page_config(page_title="PaperTrail — Integrations", page_icon="🔑")
+ICON = Path(__file__).resolve().parent.parent / "assets" / "favicon.png"
+
+st.set_page_config(
+    page_title="PaperTrail",
+    page_icon=str(ICON),
+    layout="wide",
+)
+
 render_header("key", "Integrations", "Bring your own keys — nothing is stored on our servers.")
 
 st.markdown("""

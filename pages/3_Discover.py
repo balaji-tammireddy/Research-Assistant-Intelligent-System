@@ -6,7 +6,16 @@ from shared.utils import (
 )
 from Discover.logic import discover_papers
 
-st.set_page_config(page_title="PaperTrail — Discover", page_icon="🔍", layout="wide")
+from pathlib import Path
+
+ICON = Path(__file__).resolve().parent.parent / "assets" / "favicon.png"
+
+st.set_page_config(
+    page_title="PaperTrail",
+    page_icon=str(ICON),
+    layout="wide",
+)
+
 
 render_header("discover", "Discover", "Find the papers worth reading — arXiv, filtered for genuine relevance.")
 render_key_status_badges(need_groq=True, need_pageindex=False)

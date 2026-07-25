@@ -1,7 +1,16 @@
 import streamlit as st
 from shared.utils import inject_global_css, ICONS
+from pathlib import Path
 
-st.set_page_config(page_title="PaperTrail", page_icon="📄", layout="wide")
+
+ICON = Path(__file__).resolve().parent / "assets" / "favicon.png"
+
+st.set_page_config(
+    page_title="PaperTrail",
+    page_icon=str(ICON),
+    layout="wide",
+)
+
 inject_global_css()
 
 # --- Top bar: title on the left, Get Started on the top-right (H2) ---
