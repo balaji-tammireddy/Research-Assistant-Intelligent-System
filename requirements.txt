@@ -17,3 +17,4 @@ pageindex
 dotenv
 ipywidgets
 arxiv
+reportlab
