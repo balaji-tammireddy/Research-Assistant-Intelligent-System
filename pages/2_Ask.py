@@ -35,46 +35,71 @@ with st.container(key="panels_row"):
 
     # ---------------- Left: documents ----------------
     with left:
-        with st.container(key="ask_doc_area", height="stretch"):
-            render_section_header("document", "Documents")
+        render_section_header("document", "Documents")
+        doc_list_slot = st.container()
 
-            doc_list_slot = st.container(key="ask_doc_list", height="stretch")
-            with doc_list_slot:
-                if has_docs:
-                    st.caption(f"{len(document_trees)} document(s) loaded")
-                    for d in document_trees.values():
-                        st.markdown(
-                            f'<div class="pt-file-row">{status_badge("ok")}'
-                            f'<span class="pt-file-name">{d["filename"]}</span></div>',
-                            unsafe_allow_html=True,
-                        )
-                elif ready:
+        doc_list_slot = st.container()
+
+        with doc_list_slot:
+            if has_docs:
+                st.caption(f"{len(document_trees)} document(s) loaded")
+                for d in document_trees.values():
                     st.markdown(
-                        '<div class="pt-empty-fill"><div class="pt-caution-box">'
-                        'Upload at least one PDF below, then click <b>Process documents</b>.'
-                        '</div></div>',
+                        f'<div class="pt-file-row">{status_badge("ok")}'
+                        f'<span class="pt-file-name">{d["filename"]}</span></div>',
                         unsafe_allow_html=True,
                     )
 
-            # Uploader + process button pinned at the bottom of the panel.
-            uploaded_files = st.file_uploader(
-                "Upload PDFs", type=["pdf"], accept_multiple_files=True,
-                key="ask_uploader", label_visibility="collapsed",
-                disabled=not ready,
-            )
-            process_clicked = st.button(
-                "Process documents", width="stretch", type="primary",
-                disabled=not ready or not uploaded_files,
-            )
+        # Push both controls toward the bottom
+        st.markdown("<div style='height:280px'></div>", unsafe_allow_html=True)
 
-            if process_clicked:
-                with doc_list_slot:
-                    placeholders = {f.name: st.empty() for f in uploaded_files}
-                    document_trees = ingest_pdfs(uploaded_files, placeholders=placeholders)
-                st.session_state["ask_document_trees"] = document_trees
-                st.session_state["ask_document_index"] = build_document_index(document_trees)
-                st.session_state["ask_chat_history"] = []
-                st.rerun()
+        uploaded_files = st.file_uploader(
+            "Upload PDFs",
+            type=["pdf"],
+            accept_multiple_files=True,
+            key="ask_uploader",
+            label_visibility="collapsed",
+            disabled=not ready,
+        )
+
+        process_clicked = st.button(
+            "Process documents",
+            width="stretch",
+            type="primary",
+            disabled=not ready or not uploaded_files,
+        )
+
+        # ---------- Lower half ----------
+        bottom = st.container(height="stretch")
+
+        with bottom:
+            if ready and not has_docs:
+                st.markdown(
+                    """
+                    <div style="
+                        height:100%;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                    ">
+                        <div class="pt-caution-box">
+                            Upload at least one PDF above, then click
+                            <b>Process documents</b>.
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+        if process_clicked:
+            with doc_list_slot:
+                placeholders = {f.name: st.empty() for f in uploaded_files}
+                document_trees = ingest_pdfs(uploaded_files, placeholders=placeholders)
+
+            st.session_state["ask_document_trees"] = document_trees
+            st.session_state["ask_document_index"] = build_document_index(document_trees)
+            st.session_state["ask_chat_history"] = []
+            st.rerun()
 
     # ---------------- Right: chat ----------------
     with right:
@@ -85,8 +110,19 @@ with st.container(key="panels_row"):
             with chat_slot:
                 if not has_docs:
                     st.markdown(
-                        '<div class="pt-empty-fill"><div class="pt-caution-box">'
-                        '⚠ Add at least one file on the left to start chatting.</div></div>',
+                        """
+                        <div style="
+                            height:260px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                        ">
+                            <div class="pt-caution-box">
+                                Upload at least one PDF below, then click
+                                <b>Process documents</b>.
+                            </div>
+                        </div>
+                        """,
                         unsafe_allow_html=True,
                     )
                 else:
