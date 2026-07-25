@@ -26,13 +26,7 @@ with c_count:
         label_visibility="collapsed", disabled=not ready,
     )
 with c_btn:
-    search_clicked = st.button("Search", type="primary", use_container_width=True, disabled=not ready)
-
-if not ready:
-    st.markdown(
-        '<div class="pt-caution-box">⚠️ Add your Groq API key on the Integrations page to search.</div>',
-        unsafe_allow_html=True,
-    )
+    search_clicked = st.button("Search", type="primary", width="stretch", disabled=not ready)
 
 if search_clicked and query:
     with st.status("Searching arXiv...", expanded=True) as status:

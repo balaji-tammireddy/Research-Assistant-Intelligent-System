@@ -51,7 +51,7 @@ def inject_global_css():
 
     .pt-badge-row {
         position: fixed;
-        top: 3.35rem;
+        top: 3.55rem;
         right: 1.25rem;
         z-index: 999998;
         display: flex;
@@ -108,6 +108,86 @@ def inject_global_css():
     }
     .pt-file-icon { font-size: 1rem; }
     .pt-file-name { flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pt-file-label { margin-left: auto; font-size: 0.75rem; color: #9ca3af; text-transform: capitalize; flex-shrink: 0; }
+
+    /* -----------------------------------------------------------------
+       Top bar: page header + inline caution message on the same row
+    ----------------------------------------------------------------- */
+    .pt-inline-caution {
+        border: 1px solid #f97316;
+        background: rgba(249, 115, 22, 0.08);
+        border-radius: 0.5rem;
+        padding: 0.55rem 0.9rem;
+        color: #f97316;
+        font-size: 0.85rem;
+        line-height: 1.3;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .block-container { padding-top: 3.4rem !important; padding-bottom: 1rem !important; }
+
+    /* Small icon + label used for the panel sub-headers (Documents / Chat / Review) */
+    .pt-section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        font-size: 1.02rem;
+        flex-shrink: 0;
+    }
+    .pt-section-header svg { width: 19px; height: 19px; flex-shrink: 0; }
+
+    /* -----------------------------------------------------------------
+       Status badges: replace ✅ / ❌ / ⏳ emoji with bordered-circle marks
+    ----------------------------------------------------------------- */
+    .pt-status-badge {
+        width: 20px; height: 20px; min-width: 20px;
+        border-radius: 50%;
+        display: inline-flex; align-items: center; justify-content: center;
+        border: 2px solid; font-size: 0.68rem; font-weight: 800; line-height: 1;
+        flex-shrink: 0;
+    }
+    .pt-status-ok { border-color: #22c55e; color: #22c55e; }
+    .pt-status-error { border-color: #dc2626; color: #dc2626; }
+    .pt-status-processing { border-color: #f59e0b; color: #f59e0b; animation: pt-pulse 1.4s ease-in-out infinite; }
+    @keyframes pt-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    /* -----------------------------------------------------------------
+       Fixed-height, non-scrolling two-panel layout (Ask / Synthesize).
+       The row height is capped to the viewport so the *window* never
+       scrolls; only the inner panes (doc list / chat) scroll.
+    ----------------------------------------------------------------- */
+    .st-key-panels_row {
+        height: calc(100vh - 11rem) !important;
+        min-height: 520px;
+        flex: none !important;
+    }
+    .st-key-panels_row > div { height: 100%; }
+    .st-key-panels_row div[data-testid="stHorizontalBlock"] { height: 100%; }
+    .st-key-panels_row div[data-testid="column"] { height: 100%; display: flex; }
+    .st-key-panels_row div[data-testid="column"] > div {
+        height: 100%; width: 100%; display: flex; flex-direction: column; min-height: 0;
+    }
+    /* keyed inner containers used as scrollable panes */
+    .st-key-ask_doc_area, .st-key-ask_chat_area,
+    .st-key-synth_doc_area, .st-key-synth_result_area {
+        min-height: 0; overflow: hidden;
+    }
+    .st-key-ask_doc_list, .st-key-ask_chat_messages,
+    .st-key-synth_doc_list, .st-key-synth_result_body {
+        min-height: 0; overflow-y: auto;
+    }
+
+    /* Centers a caution message inside an otherwise-empty flexible area */
+    .pt-empty-fill {
+        flex: 1 1 auto;
+        display: flex; align-items: center; justify-content: center;
+        min-height: 0; text-align: center;
+    }
+    .pt-empty-fill .pt-caution-box { margin: 0; width: 100%; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -205,6 +285,19 @@ ICONS = {
         <circle cx="8" cy="15" r="4" stroke="#f472b6" stroke-width="1.8"/>
         <path d="M11.5 11.5L20 3M20 3v4h-4M20 3l-3 3" stroke="#f472b6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>''',
+    "document": '''<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"
+            stroke="#60a5fa" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M14 3v5a1 1 0 0 0 1 1h5" stroke="#60a5fa" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="M9 13h6M9 16.5h6M9 10h2" stroke="#60a5fa" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>''',
+    "chat": '''<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"
+            stroke="#60a5fa" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="8" cy="10.5" r="1" fill="#60a5fa"/>
+        <circle cx="12" cy="10.5" r="1" fill="#60a5fa"/>
+        <circle cx="16" cy="10.5" r="1" fill="#60a5fa"/>
+    </svg>''',
 }
 
 
@@ -218,6 +311,20 @@ def render_header(icon_key: str, title: str, tagline: str = ""):
     )
     if tagline:
         st.markdown(f'<div class="pt-tagline">{tagline}</div>', unsafe_allow_html=True)
+
+
+def render_section_header(icon_key: str, title: str):
+    """Small in-panel header (e.g. Documents / Chat / Review) — SVG icon, no emoji."""
+    inject_global_css()
+    svg = ICONS.get(icon_key, "")
+    st.markdown(f'<div class="pt-section-header">{svg}<span>{title}</span></div>', unsafe_allow_html=True)
+
+
+def status_badge(kind: str) -> str:
+    """Bordered-circle status mark: 'ok' (green tick), 'error' (red cross),
+    'processing' (yellow exclamation) — used instead of ✅/❌/⏳ emoji."""
+    symbol = {"ok": "✓", "error": "✕", "processing": "!"}.get(kind, "!")
+    return f'<span class="pt-status-badge pt-status-{kind}">{symbol}</span>'
 
 
 def get_text_content(response) -> str:
@@ -250,9 +357,6 @@ def get_pi_client() -> PageIndexClient:
 # PDF ingestion with live, per-file, in-place status (pie-spinner -> tick/cross)
 # ---------------------------------------------------------------------------
 
-_PIE_FRAMES = ["◴", "◷", "◶", "◵"]
-
-
 def ingest_pdfs(uploaded_files, placeholders: dict = None, status_container=None) -> dict:
     """
     Saves Streamlit-uploaded PDFs to temp files, submits each to PageIndex,
@@ -271,15 +375,16 @@ def ingest_pdfs(uploaded_files, placeholders: dict = None, status_container=None
         elif status_container:
             status_container.write(filename + ": " + html)
 
-    def _row(icon, filename, label):
-        return (f'<div class="pt-file-row"><span class="pt-file-icon">{icon}</span>'
-                f'<span class="pt-file-name">{filename}</span><span>{label}</span></div>')
+    def _row(kind, filename, label):
+        return (f'<div class="pt-file-row">{status_badge(kind)}'
+                f'<span class="pt-file-name">{filename}</span>'
+                f'<span class="pt-file-label">{label}</span></div>')
 
     pi_client = get_pi_client()
     doc_records = {}
 
     for uploaded_file in uploaded_files:
-        _set(uploaded_file.name, _row("⏳", uploaded_file.name, "uploading..."))
+        _set(uploaded_file.name, _row("processing", uploaded_file.name, "uploading..."))
         temp_dir = tempfile.mkdtemp()
         temp_path = os.path.join(temp_dir, uploaded_file.name)
         with open(temp_path, "wb") as f:
@@ -295,7 +400,6 @@ def ingest_pdfs(uploaded_files, placeholders: dict = None, status_container=None
             os.remove(temp_path)
 
     pending = set(doc_records.keys())
-    frame = 0
     while pending:
         for doc_id in list(pending):
             status_result = pi_client.get_document(doc_id)
@@ -303,16 +407,15 @@ def ingest_pdfs(uploaded_files, placeholders: dict = None, status_container=None
             doc_records[doc_id]["status"] = status
             filename = doc_records[doc_id]["filename"]
             if status in ("completed",):
-                _set(filename, _row("✅", filename, "completed"))
+                _set(filename, _row("ok", filename, "completed"))
                 pending.remove(doc_id)
             elif status in ("failed", "error"):
-                _set(filename, _row("❌", filename, "failed"))
+                _set(filename, _row("error", filename, "failed"))
                 pending.remove(doc_id)
             else:
-                _set(filename, _row(_PIE_FRAMES[frame % len(_PIE_FRAMES)], filename, status or "processing"))
+                _set(filename, _row("processing", filename, status or "processing"))
         if pending:
             time.sleep(5)
-            frame += 1
 
     document_trees = {}
     failed = []
