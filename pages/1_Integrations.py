@@ -1,7 +1,8 @@
 import streamlit as st
+from shared.utils import render_header
 
 st.set_page_config(page_title="PaperTrail — Integrations", page_icon="🔑")
-st.title("🔑 Integrations")
+render_header("key", "Integrations", "Bring your own keys — nothing is stored on our servers.")
 
 st.markdown("""
 PaperTrail uses **your own API keys** to run — nothing is stored on our servers.
@@ -12,42 +13,40 @@ deliberate privacy choice, not a limitation.
 
 st.divider()
 
-st.subheader("LLM Provider — Groq")
-st.caption(
-    "This app uses `openai/gpt-oss-120b` via Groq. This model is fixed — it "
-    "was tested extensively for reliable structured-output behavior across "
-    "all of PaperTrail's workflows, so it isn't user-selectable."
-)
-groq_key = st.text_input(
-    "Groq API Key", type="password",
-    value=st.session_state.get("groq_api_key", ""),
-    placeholder="gsk_...",
-)
-st.caption("Don't have one? [Get a free Groq API key](https://console.groq.com/keys)")
-if groq_key:
-    st.session_state["groq_api_key"] = groq_key
-
-st.divider()
-
-st.subheader("Document Processing — PageIndex")
-st.caption("Used to parse and index your uploaded PDFs for Ask and Synthesize.")
-pageindex_key = st.text_input(
-    "PageIndex API Key", type="password",
-    value=st.session_state.get("pageindex_api_key", ""),
-    placeholder="Your PageIndex API key",
-)
-st.caption("Don't have one? [Get a PageIndex API key](https://pageindex.ai)")
-if pageindex_key:
-    st.session_state["pageindex_api_key"] = pageindex_key
-
-st.divider()
-
-st.subheader("Status")
 col1, col2 = st.columns(2)
+
 with col1:
-    st.success("Groq key set") if st.session_state.get("groq_api_key") else st.warning("Groq key not set")
+    st.subheader("Groq API Key")
+    st.caption(
+        "Powers the LLM (`openai/gpt-oss-120b`, fixed after testing showed it "
+        "gave the most reliable structured output)."
+    )
+    groq_key = st.text_input(
+        "Groq API Key", type="password",
+        value=st.session_state.get("groq_api_key", ""),
+        placeholder="gsk_...",
+        label_visibility="collapsed",
+    )
+    st.caption("Don't have one? [Get a free Groq API key](https://console.groq.com/keys)")
+    if groq_key:
+        st.session_state["groq_api_key"] = groq_key
+
 with col2:
-    st.success("PageIndex key set") if st.session_state.get("pageindex_api_key") else st.warning("PageIndex key not set")
+    st.subheader("PageIndex API Key")
+    st.caption(
+        "Parses and indexes your uploaded PDFs into a structured section "
+        "tree for Ask and Synthesize."
+    )
+    pageindex_key = st.text_input(
+        "PageIndex API Key", type="password",
+        value=st.session_state.get("pageindex_api_key", ""),
+        placeholder="Your PageIndex API key",
+        label_visibility="collapsed",
+    )
+    st.caption("Don't have one? [Get a PageIndex API key](https://pageindex.ai)")
+    if pageindex_key:
+        st.session_state["pageindex_api_key"] = pageindex_key
 
 if st.session_state.get("groq_api_key") and st.session_state.get("pageindex_api_key"):
+    st.divider()
     st.info("You're all set! Head to **Ask**, **Discover**, or **Synthesize** from the sidebar.")
