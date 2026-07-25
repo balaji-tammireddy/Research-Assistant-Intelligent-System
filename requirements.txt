@@ -16,3 +16,4 @@ chromadb
 pageindex
 dotenv
 ipywidgets
+arxiv
