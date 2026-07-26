@@ -4,7 +4,7 @@ from shared.utils import (
     get_llm, ingest_pdfs, build_document_index, show_error_toast,
     render_section_header, status_badge, normalize_math_markdown,
 )
-from Ask.logic import answer_query, update_chat_history
+from ask.logic import answer_query, update_chat_history
 
 from pathlib import Path
 
