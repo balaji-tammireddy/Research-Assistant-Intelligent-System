@@ -1,11 +1,10 @@
-import html as _html
 import os
 import tempfile
 import streamlit as st
 from shared.utils import (
     keys_ready, render_key_status_badges, render_header,
-    get_llm, ingest_pdfs, show_error_toast, show_caution_toast,
-    render_section_header, status_badge,
+    get_llm, ingest_pdfs, show_error_toast, show_caution_toast, show_info_toast,
+    render_section_header, status_badge, normalize_math_markdown, copy_to_clipboard_button,
 )
 from Synthesize.logic import generate_literature_review, export_review_to_pdf, get_copyable_text
 
@@ -34,11 +33,48 @@ with st.container(key="panels_row"):
     left, right = st.columns([3, 7], border=True)
 
     with left:
-        with st.container(key="synth_doc_area", height="stretch"):
-            render_section_header("document", "Documents")
+        render_section_header("document", "Documents")
 
-            doc_list_slot = st.container(key="synth_doc_list", height="stretch")
+        doc_list_slot = st.container(key="synth_doc_list", height=220)
 
+        is_processing = st.session_state.get("synth_is_processing", False)
+
+        with st.container(key="synth_upload_controls"):
+            if not has_docs:
+                uploaded_files = st.file_uploader(
+                    "Upload PDFs",
+                    type=["pdf"],
+                    accept_multiple_files=True,
+                    key="synth_uploader",
+                    label_visibility="collapsed",
+                    disabled=not ready or is_processing,
+                )
+
+                generate_clicked = st.button(
+                    "Generating..." if is_processing else "Generate literature review",
+                    width="stretch",
+                    type="primary",
+                    disabled=not ready or not uploaded_files or is_processing,
+                )
+            else:
+                uploaded_files = None
+                generate_clicked = False
+                if st.button("Upload different documents", width="stretch"):
+                    st.session_state["synth_document_trees"] = {}
+                    st.session_state.pop("synth_review", None)
+                    st.session_state.pop("synth_pdf_bytes", None)
+                    st.rerun()
+
+        # Phase 1: click sets the flag and reruns WITHOUT doing any work yet,
+        # so the next run draws the button already-disabled before the
+        # blocking ingest+generate calls start.
+        if generate_clicked and not is_processing:
+            st.session_state["synth_is_processing"] = True
+            st.rerun()
+
+        # Decide doc_list_slot's content only when not actively processing,
+        # so a click's rerun shows ONLY the live ingestion progress.
+        if not is_processing:
             with doc_list_slot:
                 if has_docs:
                     st.caption(f"{len(document_trees)} document(s) loaded")
@@ -48,62 +84,56 @@ with st.container(key="panels_row"):
                             f'<span class="pt-file-name">{d["filename"]}</span></div>',
                             unsafe_allow_html=True,
                         )
+                elif ready:
+                    st.markdown(
+                        '<div class="pt-empty-fill"><div class="pt-caution-box">'
+                        'Upload at least one PDF below, then click <b>Generate literature review</b>.'
+                        '</div></div>',
+                        unsafe_allow_html=True,
+                    )
 
-            st.markdown("<div style='height:270px'></div>", unsafe_allow_html=True)
+        # Phase 2: this run started with the flag already True.
+        if is_processing and uploaded_files:
+            with doc_list_slot:
+                placeholders = {f.name: st.empty() for f in uploaded_files}
+                document_trees = ingest_pdfs(uploaded_files, placeholders=placeholders)
 
-            uploaded_files = st.file_uploader(
-                "Upload PDFs",
-                type=["pdf"],
-                accept_multiple_files=True,
-                key="synth_uploader",
-                label_visibility="collapsed",
-                disabled=not ready,
-            )
+            st.session_state["synth_document_trees"] = document_trees
 
-            generate_clicked = st.button(
-                "Generate literature review",
-                width="stretch",
-                type="primary",
-                disabled=not ready or not uploaded_files,
-            )
+            if not document_trees:
+                show_error_toast("No documents processed successfully.")
+                st.session_state["synth_is_processing"] = False
+            else:
+                if len(document_trees) == 1:
+                    show_caution_toast(
+                        "Only one document was uploaded — a literature review is usually "
+                        "comparative, so this one may read more like a summary. Add another "
+                        "paper for a fuller comparison."
+                    )
 
-            if generate_clicked:
-                with doc_list_slot:
-                    placeholders = {f.name: st.empty() for f in uploaded_files}
-                    document_trees = ingest_pdfs(uploaded_files, placeholders=placeholders)
+                with st.spinner("Generating your literature review..."):
+                    show_info_toast(
+                        f"Generating review across {len(document_trees)} document(s) — "
+                        f"this can take 30-60s across several synthesis steps."
+                    )
+                    try:
+                        llm = get_llm()
+                        result = generate_literature_review(llm, document_trees)
+                        st.session_state["synth_review"] = result["review_text"]
+                        st.session_state.pop("synth_pdf_bytes", None)
+                    except Exception as e:
+                        show_error_toast(f"Something went wrong generating the review: {e}")
+                    finally:
+                        st.session_state["synth_is_processing"] = False
 
-                st.session_state["synth_document_trees"] = document_trees
-
-                if not document_trees:
-                    show_error_toast("No documents processed successfully.")
-                else:
-                    if len(document_trees) == 1:
-                        show_caution_toast(
-                            "Only one document was uploaded — a literature review is usually "
-                            "comparative, so this one may read more like a summary. Add another "
-                            "paper for a fuller comparison."
-                        )
-
-                    with st.spinner(
-                        f"Generating review across {len(document_trees)} document(s) "
-                        f"(this can take 30-60s across several synthesis steps)..."
-                    ):
-                        try:
-                            llm = get_llm()
-                            result = generate_literature_review(llm, document_trees)
-                            st.session_state["synth_review"] = result["review_text"]
-                            st.session_state.pop("synth_pdf_bytes", None)
-                        except Exception as e:
-                            show_error_toast(f"Something went wrong generating the review: {e}")
-
-                st.rerun()
+            st.rerun()
 
     with right:
-        with st.container(key="synth_result_area", height="stretch"):
+        with st.container(key="synth_result_area"):
             render_section_header("synthesize", "Review")
             review_text = st.session_state.get("synth_review")
 
-            result_body = st.container(key="synth_result_body", height="stretch")
+            result_body = st.container(key="synth_result_body", height=520)
 
             with result_body:
                 if not review_text:
@@ -127,7 +157,7 @@ with st.container(key="panels_row"):
                     format_choice = st.selectbox("View as", ["Formatted", "Download PDF", "Copy as text"])
 
                     if format_choice == "Formatted":
-                        st.markdown(review_text)
+                        st.markdown(normalize_math_markdown(review_text))
 
                     elif format_choice == "Download PDF":
                         if st.button("Prepare PDF"):
@@ -149,14 +179,4 @@ with st.container(key="panels_row"):
                     else:
                         copyable = get_copyable_text(review_text)
                         st.text_area("Copyable text", value=copyable, height=420, label_visibility="collapsed")
-                        escaped = _html.escape(copyable)
-                        st.markdown(f"""
-<textarea id="pt-copy-src" style="position:absolute; left:-9999px;">{escaped}</textarea>
-<button onclick="navigator.clipboard.writeText(document.getElementById('pt-copy-src').value);
-this.innerText='✅ Copied!';
-setTimeout(() => this.innerText='📋 Copy to clipboard', 1500);"
-style="padding:0.5rem 1rem;border-radius:0.5rem;border:1px solid #f97316;
-background:transparent;color:#f97316;cursor:pointer;font-weight:600;">
-📋 Copy to clipboard
-</button>
-""", unsafe_allow_html=True)
+                        copy_to_clipboard_button(copyable)

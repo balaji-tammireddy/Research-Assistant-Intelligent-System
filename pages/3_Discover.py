@@ -38,6 +38,12 @@ with c_btn:
     search_clicked = st.button("Search", type="primary", width="stretch", disabled=not ready)
 
 if search_clicked and query:
+    # Clear any per-card state (prepared downloads, expander-open flags) from
+    # the previous search so old cards don't visually bleed into new results.
+    for k in list(st.session_state.keys()):
+        if k.startswith("pdf_bytes_") or k.startswith("expander_open_"):
+            del st.session_state[k]
+
     with st.status("Searching arXiv...", expanded=True) as status:
         status.write("Interpreting your query...")
         llm = get_llm()
@@ -58,14 +64,15 @@ if response:
     if response["result_note"]:
         show_caution_toast(response["result_note"])
 
-    for paper in response["results"]:
-        with st.container(border=True):
+    for i, paper in enumerate(response["results"]):
+        with st.container(border=True, key=f"card_{i}_{paper['arxiv_id']}"):
             st.markdown(f"### [{paper['title']}]({paper['link']})")
             st.caption(f"👤 {paper['authors']}")
             st.caption(f"📅 {paper['published']}")
 
             expander_open_key = f"expander_open_{paper['arxiv_id']}"
-            with st.expander("Abstract & download", expanded=st.session_state.get(expander_open_key, False)):
+            with st.expander("Abstract & download", expanded=st.session_state.get(expander_open_key, False),
+                              key=f"exp_{i}_{paper['arxiv_id']}"):
                 st.write(paper.get("summary", "No abstract available."))
 
                 state_key = f"pdf_bytes_{paper['arxiv_id']}"

@@ -39,11 +39,15 @@ def inject_global_css():
         font-size: 0.85rem;
         line-height: 1.35;
         box-shadow: 0 4px 14px rgba(0,0,0,0.3);
-        animation: pt-fade-in 0.25s ease-out;
+        animation: pt-fade-in 0.2s ease-out, pt-fade-out 0.3s ease-in 2.5s forwards;
         pointer-events: auto;
     }
     .pt-toast-error { background-color: #dc2626; border-left: 4px solid #7f1d1d; }
     .pt-toast-caution { background-color: #f97316; border-left: 4px solid #9a3412; }
+    @keyframes pt-fade-out {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-8px); }
+    }
     @keyframes pt-fade-in {
         from { opacity: 0; transform: translateY(-8px); }
         to { opacity: 1; transform: translateY(0); }
@@ -168,7 +172,8 @@ def inject_global_css():
     .st-key-panels_row > div { height: 100%; }
     .st-key-panels_row div[data-testid="stHorizontalBlock"] { height: 100%; }
     .st-key-panels_row div[data-testid="column"] { height: 100%; display: flex; }
-    .st-key-panels_row div[data-testid="column"] > div {
+    .st-key-panels_row div[data-testid="column"] [data-testid="stVerticalBlockBorderWrapper"],
+    .st-key-panels_row div[data-testid="column"] [data-testid="stVerticalBlock"] {
         height: 100%; width: 100%; display: flex; flex-direction: column; min-height: 0;
     }
     /* keyed inner containers used as scrollable panes */
@@ -188,6 +193,24 @@ def inject_global_css():
         min-height: 0; text-align: center;
     }
     .pt-empty-fill .pt-caution-box { margin: 0; width: 100%; }
+    /* Bounded, independently-scrolling sub-panes (doc list stays small,
+       upload controls stay pinned below it, without a growing page) */
+    .pt-scroll-pane {
+        max-height: 260px;
+        overflow-y: auto;
+        margin-bottom: 0.6rem;
+    }
+    .st-key-ask_doc_list, .st-key-synth_doc_list {
+        max-height: 280px !important;
+        overflow-y: auto !important;
+    }
+    .st-key-ask_empty_fill, .st-key-synth_empty_fill,
+    .st-key-ask_chat_messages, .st-key-synth_result_body {
+        flex: 1 1 auto !important;
+    }
+    .st-key-ask_upload_controls, .st-key-synth_upload_controls {
+        margin-top: auto !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -208,6 +231,26 @@ def show_caution_toast(message: str):
         f'<div class="pt-toast-container"><div class="pt-toast pt-toast-caution">⚠️ {message}</div></div>',
         unsafe_allow_html=True,
     )
+
+
+def show_info_toast(message: str):
+    """Neutral top-right toast for in-progress status (e.g. 'Generating...')."""
+    inject_global_css()
+    st.markdown(
+        f'<div class="pt-toast-container"><div class="pt-toast" '
+        f'style="background-color:#4338ca;border-left:4px solid #312e81;">⏳ {message}</div></div>',
+        unsafe_allow_html=True,
+    )
+
+
+def normalize_math_markdown(text: str) -> str:
+    """LLMs often emit \\(...\\) / \\[...\\] LaTeX delimiters, which Streamlit's
+    markdown renderer doesn't recognize (only $...$ / $$...$$ are). Normalize
+    so formulas actually render instead of showing as raw text."""
+    import re
+    text = re.sub(r"\\\[(.+?)\\\]", r"$$\1$$", text, flags=re.S)
+    text = re.sub(r"\\\((.+?)\\\)", r"$\1$", text, flags=re.S)
+    return text
 
 
 def render_key_status_badges(need_groq: bool = True, need_pageindex: bool = False):
@@ -463,3 +506,29 @@ def build_document_index(document_trees: dict) -> list:
     for doc_id, data in document_trees.items():
         index.extend(flatten_tree(data["tree"], doc_id, data["filename"]))
     return index
+
+
+def copy_to_clipboard_button(text: str, label: str = "Copy to clipboard"):
+    """A real, working copy button. st.markdown(unsafe_allow_html=True) does
+    NOT reliably execute inline onclick JS — components.html runs in an
+    actual sandboxed iframe with a working script context, which does."""
+    import json as _json
+    import uuid
+    import streamlit.components.v1 as components
+    safe_text = _json.dumps(text)
+    uid = uuid.uuid4().hex[:8]
+    components.html(f"""
+        <button id="pt-copy-{uid}" style="
+            background:transparent; color:#f97316; border:1px solid #f97316;
+            border-radius:8px; padding:8px 16px; font-size:0.85rem;
+            font-weight:600; cursor:pointer;">
+            📋 {label}
+        </button>
+        <script>
+        document.getElementById("pt-copy-{uid}").addEventListener("click", function() {{
+            navigator.clipboard.writeText({safe_text});
+            this.innerText = "✅ Copied!";
+            setTimeout(() => this.innerText = "📋 {label}", 1500);
+        }});
+        </script>
+    """, height=45)
