@@ -522,12 +522,12 @@ def copy_to_clipboard_button(text: str, label: str = "Copy to clipboard"):
             background:transparent; color:#f97316; border:1px solid #f97316;
             border-radius:8px; padding:8px 16px; font-size:0.85rem;
             font-weight:600; cursor:pointer;">
-            📋 {label}
+            {label}
         </button>
         <script>
         document.getElementById("pt-copy-{uid}").addEventListener("click", function() {{
             navigator.clipboard.writeText({safe_text});
-            this.innerText = "✅ Copied!";
+            this.innerText = "Copied!";
             setTimeout(() => this.innerText = "📋 {label}", 1500);
         }});
         </script>

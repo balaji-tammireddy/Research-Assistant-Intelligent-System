@@ -89,43 +89,9 @@ st.divider()
 
 # --- README-style project details, for anyone evaluating the project (H7) ---
 with st.expander("📋 About this project — architecture, design decisions & tech stack", expanded=False):
-    st.markdown("""
-**PaperTrail** is a citation-grounded research assistant built around three
-tools — Ask, Discover, and Synthesize — sharing a common document-ingestion
-and BYOK (bring-your-own-key) layer.
-
-**Why vectorless retrieval?**
-Most RAG systems chunk documents into fixed-size pieces and embed them, which
-throws away document structure and produces citations that point to
-meaningless chunk IDs. PaperTrail instead parses each PDF into a structured
-section tree (via PageIndex), then uses an LLM tree-search step to pick the
-relevant node IDs directly from titles + summaries before pulling in full
-text — so citations always resolve to a real, human-readable section name.
-
-**Ask** — Retrieval-augmented Q&A over uploaded papers. An LLM searches the
-document tree(s) for relevant sections, pulls their full text, and answers
-strictly from that context with inline citations. Supports cross-paper
-comparison questions and keeps a sliding-window chat history (older turns are
-summarized rather than dropped).
-
-**Discover** — arXiv search with a disambiguation step (e.g. "transformers"
-→ ML architecture vs. hardware), category filtering, and a strict LLM
-relevance filter that rejects papers merely *mentioning* a topic rather than
-being about it. Includes one bounded retry with reworded search terms if the
-first pass comes up short.
-
-**Synthesize** — An orchestrator-worker pipeline (via LangGraph) that builds
-shared context across all uploaded papers (themes + per-paper facts), then
-writes an Overview, Thematic Grouping, Methodology Comparison table, Key
-Findings Comparison (explicitly calling out agreement/disagreement between
-papers), and Gaps & Future Directions — assembled into one review,
-exportable as PDF.
-
-**Tech stack:** Streamlit (UI), LangChain + LangGraph (orchestration), Groq
-(`openai/gpt-oss-120b` LLM), PageIndex (structured PDF parsing), `arxiv`
-(paper search), ReportLab (PDF export).
-
-**Design principles:** no server-side storage of keys or documents, one
-fixed model to keep behavior predictable, and citations that trace back to
-real sections rather than opaque chunk indices.
-""")
+    readme_path = Path(__file__).resolve().parent / "README.md"
+    try:
+        with open(readme_path, "r", encoding="utf-8") as f:
+            st.markdown(f.read(), unsafe_allow_html=True)
+    except FileNotFoundError:
+        st.markdown("README.md not found.")
